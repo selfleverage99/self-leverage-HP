@@ -11,7 +11,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=Noto+Sans+JP:wght@300;400;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
 
@@ -31,13 +30,6 @@
         ::-webkit-scrollbar-track { background: #000; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #fff; }
-
-        /* 3D Canvas fixed at back */
-        #webgl-container {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100vh;
-            z-index: -1; opacity: 0; transition: opacity 1s ease;
-        }
 
         /* Custom Cursor */
         .cursor-dot, .cursor-outline {
@@ -111,7 +103,8 @@
 </head>
 <body class="antialiased selection:bg-white selection:text-black">
 
-    <div id="webgl-container"></div>
+    <canvas id="bg-canvas" class="fixed top-0 left-0 w-full h-screen z-[-1] pointer-events-none"></canvas>
+
     <div class="cursor-dot"></div>
     <div class="cursor-outline"></div>
 
@@ -560,7 +553,7 @@
     </main>
 
     <script>
-        // --- 1. Custom Cursor Logic ---
+        // --- 1. Custom Cursor ---
         const cursorDot = document.querySelector('.cursor-dot');
         const cursorOutline = document.querySelector('.cursor-outline');
 
@@ -584,158 +577,77 @@
             });
         });
 
-        // --- 2. Three.js High-Tech Background ---
-        const initThreeJS = () => {
-            const container = document.getElementById('webgl-container');
-            const scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x000000, 0.002);
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 40; camera.position.y = 15; camera.lookAt(0, 0, 0);
+        // --- 2. タップ時専用 パーティクルバースト (キャンバス) ---
+        const initCanvasParticles = () => {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            let particles = [];
 
-            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            container.appendChild(renderer.domElement);
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
 
-            setTimeout(() => { container.style.opacity = 1; }, 500);
-
-            const particleCount = 4000;
-            const geometry = new THREE.BufferGeometry();
-            const positions = new Float32Array(particleCount * 3);
-            const originalPositions = new Float32Array(particleCount * 3);
-            
-            const branches = 3; const spin = 1; const random = 0.5; const galaxyRadius = 45;
-
-            for(let i = 0; i < particleCount; i++) {
-                const i3 = i * 3;
-                const r = Math.random() * galaxyRadius;
-                const spinAngle = r * spin;
-                const branchAngle = (i % branches) / branches * Math.PI * 2;
-                const randomX = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1) * random * r;
-                const randomY = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1) * random * r * 0.5; 
-                const randomZ = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1) * random * r;
-
-                const x = Math.cos(branchAngle + spinAngle) * r + randomX;
-                const y = randomY; 
-                const z = Math.sin(branchAngle + spinAngle) * r + randomZ;
-
-                positions[i3] = x; positions[i3+1] = y; positions[i3+2] = z;
-                originalPositions[i3] = x; originalPositions[i3+1] = y; originalPositions[i3+2] = z;
+            class Particle {
+                constructor(x, y) {
+                    this.x = x; 
+                    this.y = y;
+                    this.size = Math.random() * 2.5 + 0.5;
+                    const angle = Math.random() * Math.PI * 2;
+                    // 弾けるスピード
+                    const velocity = Math.random() * 15 + 2; 
+                    this.speedX = Math.cos(angle) * velocity;
+                    this.speedY = Math.sin(angle) * velocity;
+                    this.life = 1.0;
+                    // 消えるスピード
+                    this.decay = Math.random() * 0.02 + 0.01; 
+                }
+                update() {
+                    this.x += this.speedX; 
+                    this.y += this.speedY;
+                    this.life -= this.decay;
+                    // 摩擦でスッと減速する美しい動き
+                    this.speedX *= 0.92; 
+                    this.speedY *= 0.92;
+                }
+                draw() {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${this.life})`;
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = `rgba(255, 255, 255, ${this.life * 0.8})`; // 発光エフェクト
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0; // リセット
+                }
             }
 
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            const material = new THREE.PointsMaterial({
-                color: 0xffffff, size: 0.18, transparent: true, opacity: 0.9,
-                sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false
-            });
-            const particles = new THREE.Points(geometry, material);
-            scene.add(particles);
-
-            const mouse = new THREE.Vector2(-1000, -1000);
-            let explosionPower = 0;
-            const clickPosition = new THREE.Vector2(0, 0);
-            
-            let planeWidth, planeHeight;
-            const updatePlaneSize = () => {
-                const dist = camera.position.distanceTo(new THREE.Vector3(0,0,0));
-                const vFov = THREE.Math.degToRad(camera.fov);
-                planeHeight = 2 * Math.tan(vFov / 2) * dist;
-                planeWidth = planeHeight * camera.aspect;
-            };
-            updatePlaneSize();
-
-            const onPointerMove = (x, y) => {
-                const ndcX = (x / window.innerWidth) * 2 - 1;
-                const ndcY = -(y / window.innerHeight) * 2 + 1;
-                mouse.x = ndcX * (planeWidth / 2);
-                mouse.y = ndcY * (planeHeight / 2) + camera.position.y * 0.5;
-            };
-
-            const onPointerDown = (x, y) => {
-                const ndcX = (x / window.innerWidth) * 2 - 1;
-                const ndcY = -(y / window.innerHeight) * 2 + 1;
-                clickPosition.x = ndcX * (planeWidth / 2);
-                clickPosition.y = ndcY * (planeHeight / 2) + camera.position.y * 0.5;
-                // タップ時の弾ける強さを1.0から1.5にアップしてバースト感を強調
-                explosionPower = 1.5;
-            };
-
-            document.addEventListener('mousemove', (e) => onPointerMove(e.clientX, e.clientY));
-            document.addEventListener('touchmove', (e) => {
-                if(e.touches.length > 0) onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
-            }, { passive: true });
-            document.addEventListener('mousedown', (e) => onPointerDown(e.clientX, e.clientY));
-            document.addEventListener('touchstart', (e) => {
-                if(e.touches.length > 0) onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
-            }, { passive: true });
-
-            const clock = new THREE.Clock();
-            const animate = () => {
-                requestAnimationFrame(animate);
-                const elapsedTime = clock.getElapsedTime();
-                const positions = particles.geometry.attributes.position.array;
-
-                particles.rotation.y = elapsedTime * 0.05;
-                explosionPower *= 0.95;
-                if (explosionPower < 0.001) explosionPower = 0;
-
-                for(let i = 0; i < particleCount; i++) {
-                    const i3 = i * 3;
-                    const ox = originalPositions[i3]; const oy = originalPositions[i3+1]; const oz = originalPositions[i3+2];
-                    let px = positions[i3]; let py = positions[i3+1]; let pz = positions[i3+2];
-
-                    const breath = Math.sin(elapsedTime * 0.5 + ox * 0.1) * 0.1;
-                    const worldX = px * Math.cos(particles.rotation.y) + pz * Math.sin(particles.rotation.y);
-                    const worldZ = -px * Math.sin(particles.rotation.y) + pz * Math.cos(particles.rotation.y);
-                    const worldY = py; 
-
-                    const dx = mouse.x - worldX; const dy = mouse.y - worldY; 
-                    const distSq = dx*dx + dy*dy;
-                    const radius = 12; const radiusSq = radius * radius;
-                    let forceX = 0, forceY = 0, forceZ = 0;
-
-                    if (distSq < radiusSq) {
-                        const dist = Math.sqrt(distSq);
-                        const force = Math.pow((radius - dist) / radius, 3); 
-                        const angle = Math.atan2(dy, dx);
-                        const repulsionStrength = 8.0; 
-                        forceX = -Math.cos(angle) * force * repulsionStrength;
-                        forceY = (Math.random() - 0.5) * force * repulsionStrength * 2; 
-                        forceZ = (Math.random() - 0.5) * force * repulsionStrength * 2;
-                    }
-
-                    // Explosion Effect (バースト強化: 乗数を20→60に拡大)
-                    let explodeX = 0, explodeY = 0, explodeZ = 0;
-                    if (explosionPower > 0) {
-                        const edx = clickPosition.x - worldX; const edy = clickPosition.y - worldY;
-                        const edistSq = edx*edx + edy*edy;
-                        const eAngle = Math.atan2(edy, edx);
-                        const eForce = Math.max(0, 100 / (Math.sqrt(edistSq) + 5)); 
-                        explodeX = -Math.cos(eAngle) * eForce * explosionPower * 60;
-                        explodeY = -Math.sin(eAngle) * eForce * explosionPower * 60;
-                        explodeZ = (Math.random() - 0.5) * explosionPower * 80;
-                    }
-
-                    const targetX = ox + forceX * 3 + explodeX;
-                    const targetY = oy + breath + forceY * 3 + explodeY;
-                    const targetZ = oz + forceZ * 3 + explodeZ;
-
-                    positions[i3] += (targetX - px) * 0.08;
-                    positions[i3+1] += (targetY - py) * 0.08;
-                    positions[i3+2] += (targetZ - pz) * 0.08;
+            function createBurst(e) {
+                const x = e.clientX || (e.touches && e.touches[0].clientX);
+                const y = e.clientY || (e.touches && e.touches[0].clientY);
+                // 1回のタップで40個の粒を放出
+                const count = 40; 
+                for(let i=0; i<count; i++) {
+                    particles.push(new Particle(x, y));
                 }
-                
-                particles.geometry.attributes.position.needsUpdate = true;
-                renderer.render(scene, camera);
-            };
+            }
 
+            // タップ（クリック）した時だけ発動させる
+            window.addEventListener('click', createBurst);
+            window.addEventListener('touchstart', createBurst, {passive: true});
+
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+                particles.forEach((p, index) => {
+                    p.update();
+                    p.draw();
+                    if(p.life <= 0) particles.splice(index, 1);
+                });
+                requestAnimationFrame(animate);
+            }
             animate();
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                updatePlaneSize();
-            });
         };
 
         // --- 3. GSAP Animations ---
@@ -797,7 +709,7 @@
         };
 
         window.addEventListener('load', () => {
-            initThreeJS();
+            initCanvasParticles(); // 変更点：Three.jsの代わりにこちらを読み込み
             initGSAP();
             initMobileMenu();
             initLangToggle();
