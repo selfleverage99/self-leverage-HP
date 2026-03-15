@@ -367,7 +367,19 @@
                         </svg>
                     </a>
                 </div>
-            </div>
+
+                <div class="md:w-1/2 w-full reveal-up">
+                    <div class="relative rounded-lg overflow-hidden border border-white/10 group aspect-video shadow-2xl shadow-blue-900/20">
+                        <div class="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 z-10 group-hover:opacity-0 transition-opacity duration-500"></div>
+                        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop" alt="Rakureba Dashboard" class="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-700">
+                        <div class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                            <div class="bg-black/60 backdrop-blur-sm border border-white/20 px-8 py-4 rounded-xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                                <span class="font-tech text-3xl font-bold tracking-widest text-white">RAKUREBA</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div>
         </section>
 
         <section id="company" class="py-24 px-6 relative z-10 bg-black/40 backdrop-blur-sm border-y border-white/5">
@@ -473,7 +485,7 @@
             });
         });
 
-        // --- 2. タップ時専用 パーティクルバースト ---
+        // --- 2. タップ時専用 パーティクルバースト (生成数を120個に増量) ---
         const initCanvasParticles = () => {
             const canvas = document.getElementById('bg-canvas');
             const ctx = canvas.getContext('2d');
@@ -520,7 +532,8 @@
             function createBurst(e) {
                 const x = e.clientX || (e.touches && e.touches[0].clientX);
                 const y = e.clientY || (e.touches && e.touches[0].clientY);
-                const count = 40; 
+                // 粒の生成数を 40 から 120 (3倍) に変更
+                const count = 120; 
                 for(let i=0; i<count; i++) {
                     particles.push(new Particle(x, y));
                 }
@@ -541,14 +554,12 @@
             animate();
         };
 
-        // --- 3. GSAP Animations (表示タイミングを早く修正) ---
+        // --- 3. GSAP Animations ---
         const initGSAP = () => {
             gsap.registerPlugin(ScrollTrigger);
             document.querySelectorAll('.reveal-up').forEach((element) => {
                 gsap.to(element, {
-                    // startを top 85% → top 90% に変更し、より早く検知させる
                     scrollTrigger: { trigger: element, start: "top 90%", toggleActions: "play none none reverse" },
-                    // durationを 1秒 → 0.9秒 に縮めて少し早く表示
                     y: 0, opacity: 1, duration: 0.9, ease: "power3.out"
                 });
             });
