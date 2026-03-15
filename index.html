@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>株式会社セルレバ | Self Leverage</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=Noto+Sans+JP:wght@300;400;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: #000;
+            color: #fff;
+            overflow-x: hidden;
+            cursor: none;
+        }
+        
+        .font-tech { font-family: 'Orbitron', sans-serif; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #fff; }
+
+        /* 3D Canvas fixed at back */
+        #webgl-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100vh;
+            z-index: -1; opacity: 0; transition: opacity 1s ease;
+        }
+
+        /* Custom Cursor */
+        .cursor-dot, .cursor-outline {
+            position: fixed; top: 0; left: 0;
+            transform: translate(-50%, -50%);
+            border-radius: 50%; z-index: 9999; pointer-events: none;
+        }
+        .cursor-dot { width: 8px; height: 8px; background-color: white; }
+        .cursor-outline {
+            width: 40px; height: 40px; border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+        }
+
+        /* Glitch Effect Class */
+        .glitch-text { position: relative; }
+        .glitch-text::before, .glitch-text::after {
+            content: attr(data-text); position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%; background: #000;
+        }
+        .glitch-text::before {
+            left: 2px; text-shadow: -1px 0 #ff00c1;
+            clip: rect(44px, 450px, 56px, 0); animation: glitch-anim 5s infinite linear alternate-reverse;
+        }
+        .glitch-text::after {
+            left: -2px; text-shadow: -1px 0 #00fff9;
+            clip: rect(44px, 450px, 56px, 0); animation: glitch-anim2 5s infinite linear alternate-reverse;
+        }
+        
+        @keyframes glitch-anim {
+            0% { clip: rect(14px, 9999px, 127px, 0); }
+            5% { clip: rect(81px, 9999px, 20px, 0); }
+            10% { clip: rect(10px, 9999px, 118px, 0); }
+            15% { clip: rect(69px, 9999px, 14px, 0); }
+            20% { clip: rect(79px, 9999px, 32px, 0); }
+            100% { clip: rect(47px, 9999px, 92px, 0); }
+        }
+        @keyframes glitch-anim2 {
+            0% { clip: rect(31px, 9999px, 107px, 0); }
+            5% { clip: rect(98px, 9999px, 4px, 0); }
+            10% { clip: rect(33px, 9999px, 86px, 0); }
+            15% { clip: rect(9px, 9999px, 35px, 0); }
+            20% { clip: rect(2px, 9999px, 11px, 0); }
+            100% { clip: rect(87px, 9999px, 13px, 0); }
+        }
+
+        .reveal-up { opacity: 0; transform: translateY(50px); }
+
+        .service-card { position: relative; overflow: hidden; isolation: isolate; }
+        .service-card-bg {
+            position: absolute; inset: 0; background-size: cover;
+            background-position: center; transition: transform 0.7s ease;
+            z-index: -2; filter: grayscale(100%);
+        }
+        .service-card:hover .service-card-bg { transform: scale(1.1); filter: grayscale(0%); }
+        .service-card-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+            transition: background 0.5s ease; z-index: -1;
+        }
+        .service-card:hover .service-card-overlay { background: rgba(0,0,0,0.6); }
+
+        .animate-spin-slow { animation: spin 15s linear infinite; }
+        .animate-spin-reverse-slow { animation: spin 20s linear infinite reverse; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .mobile-menu-active { opacity: 1 !important; pointer-events: auto !important; }
+        .hamburger-line { transition: all 0.3s ease-in-out; }
+        .nav-open .line-1 { transform: rotate(45deg) translate(5px, 5px); }
+        .nav-open .line-2 { opacity: 0; }
+        .nav-open .line-3 { transform: rotate(-45deg) translate(5px, -5px); }
+    </style>
+</head>
+<body class="antialiased selection:bg-white selection:text-black">
+
+    <div id="webgl-container"></div>
+    <div class="cursor-dot"></div>
+    <div class="cursor-outline"></div>
+
+    <div id="mobile-menu" class="fixed inset-0 bg-black/95 backdrop-blur-xl z-40 flex flex-col items-center justify-center gap-10 opacity-0 pointer-events-none transition-opacity duration-300 md:hidden">
+        <a href="#about" class="text-2xl font-tech tracking-widest hover:text-gray-400 mobile-link" data-ja="About" data-en="About" data-vn="Về chúng tôi">About</a>
+        <a href="#philosophy" class="text-2xl font-tech tracking-widest hover:text-gray-400 mobile-link" data-ja="Philosophy" data-en="Philosophy" data-vn="Triết lý">Philosophy</a>
+        <a href="#services" class="text-2xl font-tech tracking-widest hover:text-gray-400 mobile-link" data-ja="Services" data-en="Services" data-vn="Dịch vụ">Services</a>
+        <a href="#company" class="text-2xl font-tech tracking-widest hover:text-gray-400 mobile-link" data-ja="Company" data-en="Company" data-vn="Công ty">Company</a>
+        <a href="#contact" class="text-2xl font-tech tracking-widest hover:text-gray-400 mobile-link" data-ja="Contact" data-en="Contact" data-vn="Liên hệ">Contact</a>
+    </div>
+
+    <header class="fixed top-0 left-0 w-full z-50 px-6 py-6 transition-all duration-300 mix-blend-difference" id="navbar">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="#" class="flex items-center gap-3 group relative z-50">
+                <img src="./logo.jpg" alt="Self Leverage Logo" class="w-10 h-10 object-contain mix-blend-screen rounded-full group-hover:scale-110 transition-transform duration-300">
+                <span class="font-tech text-xl font-bold tracking-wider hidden sm:block group-hover:tracking-widest transition-all">Self Leverage</span>
+            </a>
+            
+            <div class="flex items-center gap-6">
+                <nav class="hidden md:flex gap-8 text-sm font-medium tracking-widest uppercase">
+                    <a href="#about" class="hover:text-gray-400 transition-colors hover:underline decoration-1 underline-offset-4" data-ja="About" data-en="About" data-vn="Về chúng tôi">About</a>
+                    <a href="#philosophy" class="hover:text-gray-400 transition-colors hover:underline decoration-1 underline-offset-4" data-ja="Philosophy" data-en="Philosophy" data-vn="Triết lý">Philosophy</a>
+                    <a href="#services" class="hover:text-gray-400 transition-colors hover:underline decoration-1 underline-offset-4" data-ja="Services" data-en="Services" data-vn="Dịch vụ">Services</a>
+                    <a href="#company" class="hover:text-gray-400 transition-colors hover:underline decoration-1 underline-offset-4" data-ja="Company" data-en="Company" data-vn="Công ty">Company</a>
+                    <a href="#contact" class="hover:text-gray-400 transition-colors hover:underline decoration-1 underline-offset-4" data-ja="Contact" data-en="Contact" data-vn="Liên hệ">Contact</a>
+                </nav>
+
+                <button id="lang-toggle" class="relative z-50 font-tech text-sm border border-white px-3 py-1 hover:bg-white hover:text-black transition-colors duration-300 w-12 text-center">
+                    <span id="current-lang">EN</span>
+                </button>
+
+                <button id="menu-btn" class="md:hidden text-white focus:outline-none relative z-50 w-8 h-8 flex flex-col justify-center gap-1.5 items-end group">
+                    <span class="hamburger-line line-1 w-full h-0.5 bg-white block"></span>
+                    <span class="hamburger-line line-2 w-3/4 h-0.5 bg-white block group-hover:w-full transition-all"></span>
+                    <span class="hamburger-line line-3 w-1/2 h-0.5 bg-white block group-hover:w-full transition-all"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="relative h-screen flex flex-col justify-center items-center px-4 overflow-hidden">
+            <div class="text-center z-10 mix-blend-difference">
+                <p class="font-tech text-xs md:text-sm tracking-[0.5em] mb-4 text-gray-300 reveal-up"
+                   data-ja="NEXT GENERATION BUSINESS" data-en="NEXT GENERATION BUSINESS" data-vn="KINH DOANH THẾ HỆ MỚI">NEXT GENERATION BUSINESS</p>
+                <h1 class="font-tech text-5xl md:text-8xl lg:text-9xl font-bold tracking-tighter mb-6 glitch-text" data-text="SELF LEVERAGE">
+                    SELF LEVERAGE
+                </h1>
+                <p class="text-sm md:text-base font-light tracking-widest max-w-lg mx-auto leading-loose text-gray-300 reveal-up"
+                   data-ja="テクノロジーとグローバルネットワークで可能性をフル拡大。<br>株式会社セルレバ"
+                   data-en="Maximizing potential through technology and global networks.<br>Self Leverage Co., Ltd."
+                   data-vn="Mở rộng tiềm năng của bạn thông qua công nghệ và mạng lưới toàn cầu.<br>Self Leverage Co., Ltd.">
+                    テクノロジーとグローバルネットワークで可能性をフル拡大。<br>
+                    株式会社セルレバ
+                </p>
+            </div>
+            
+            <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce opacity-50">
+                <span class="text-[10px] tracking-widest uppercase">Scroll</span>
+                <div class="w-[1px] h-12 bg-white"></div>
+            </div>
+        </section>
+
+        <section id="about" class="min-h-screen flex items-center py-20 px-6 relative z-10 bg-black/20 backdrop-blur-sm">
+            <div class="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-16 items-center">
+                <div class="order-2 md:order-1 reveal-up">
+                    <div class="w-full h-[400px] md:h-[500px] bg-gray-900/30 border border-white/10 relative overflow-hidden group flex items-center justify-center backdrop-blur-sm shadow-2xl shadow-black/50">
+                        <div class="absolute inset-0" style="background-image: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 30px 30px; opacity: 0.3;"></div>
+                        <div class="absolute w-[120%] aspect-square border border-white/5 rounded-full animate-spin-slow"></div>
+                        <div class="absolute w-[90%] aspect-square border border-white/10 rounded-full animate-spin-reverse-slow border-dashed opacity-30"></div>
+                        
+                        <img src="./logo.jpg" alt="SL Logo" class="w-1/2 h-auto object-contain mix-blend-screen relative z-10 transition-transform duration-700 ease-out group-hover:scale-110 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] rounded-full">
+                    </div>
+                </div>
+                <div class="order-1 md:order-2">
+                    <h2 class="font-tech text-4xl md:text-6xl mb-8 reveal-up" data-ja="WHO WE ARE" data-en="WHO WE ARE" data-vn="VỀ CHÚNG TÔI">WHO WE ARE</h2>
+                    <p class="text-gray-300 leading-loose text-lg mb-6 reveal-up"
+                       data-ja="国境や技術で可能性を潰さない。<br>株式会社セルレバは、日本と世界をつなぐビジネスマッチングから、最先端のシステム開発、そしてマーケティングまで、包括的なソリューションを提供します。"
+                       data-en="We do not let borders or technology limit possibilities.<br>Self Leverage Co., Ltd. provides comprehensive solutions from global business matching connecting Japan and the world, to cutting-edge system development and marketing."
+                       data-vn="Chúng tôi không để biên giới hay công nghệ giới hạn khả năng.<br>Công ty Self Leverage cung cấp các giải pháp toàn diện từ kết nối kinh doanh toàn cầu giữa Nhật Bản và thế giới, đến phát triển hệ thống tiên tiến và tiếp thị.">
+                        国境や技術で可能性を潰さない。<br>
+                        株式会社セルレバは、日本と世界をつなぐビジネスマッチングから、最先端のシステム開発、そしてマーケティングまで、包括的なソリューションを提供します。
+                    </p>
+                    <p class="text-gray-400 leading-loose reveal-up"
+                       data-ja="シンプルでありながら、本質的。静寂の中に潜む革新。<br>多角的なアプローチで、あなたのビジネスに「レバレッジ（最大化）」をもたらします。"
+                       data-en="Simple, yet essential. Innovation hidden in silence.<br>With a multifaceted approach, we bring 'leverage' to maximize your business."
+                       data-vn="Đơn giản nhưng thiết yếu. Đổi mới ẩn trong sự tĩnh lặng.<br>Với cách tiếp cận đa chiều, chúng tôi mang lại 'đòn bẩy' để tối đa hóa doanh nghiệp của bạn.">
+                        シンプルでありながら、本質的。静寂の中に潜む革新。<br>
+                        多角的なアプローチで、あなたのビジネスに「レバレッジ（最大化）」をもたらします。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="philosophy" class="py-32 px-6 relative overflow-hidden">
+            <div class="absolute inset-0 bg-white/5 skew-y-3 transform scale-110"></div>
+            <div class="max-w-5xl mx-auto text-center relative z-10">
+                <span class="block font-tech text-sm tracking-[0.5em] mb-8 text-gray-400 reveal-up" data-ja="OUR PHILOSOPHY" data-en="OUR PHILOSOPHY" data-vn="TRIẾT LÝ">OUR PHILOSOPHY</span>
+                <h2 class="text-3xl md:text-6xl font-bold leading-tight mb-12 reveal-up">
+                    "Simplicity is the ultimate sophistication."
+                </h2>
+                <p class="text-gray-300 leading-loose max-w-2xl mx-auto reveal-up"
+                   data-ja="複雑さを極限まで削ぎ落とし、本質だけを残す。<br>それが株式会社セルレバの流儀です。<br>私たちは「Self Leverage」の名の通り、<br>お客様自身の持つ力を最大限に引き出すためのレバーとなります。"
+                   data-en="Stripping away complexity to leave only the essence.<br>That is the Self Leverage way.<br>As our name implies, we serve as the lever<br>to maximize our clients' inherent potential."
+                   data-vn="Loại bỏ sự phức tạp để chỉ giữ lại những gì tinh túy nhất.<br>Đó là phong cách của Self Leverage.<br>Như tên gọi của chúng tôi, chúng tôi đóng vai trò là đòn bẩy<br>để tối đa hóa tiềm năng vốn có của khách hàng.">
+                    複雑さを極限まで削ぎ落とし、本質だけを残す。<br>
+                    それが株式会社セルレバの流儀です。<br>
+                    私たちは「Self Leverage」の名の通り、<br>
+                    お客様自身の持つ力を最大限に引き出すためのレバーとなります。
+                </p>
+            </div>
+        </section>
+
+        <section id="services" class="min-h-screen py-24 px-6 relative z-10">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex justify-between items-end mb-16 border-b border-white/20 pb-4 reveal-up">
+                    <h2 class="font-tech text-4xl md:text-6xl" data-ja="SERVICES" data-en="SERVICES" data-vn="DỊCH VỤ">SERVICES</h2>
+                    <span class="text-xs tracking-widest" data-ja="OUR EXPERTISE" data-en="OUR EXPERTISE" data-vn="CHUYÊN MÔN CỦA CHÚNG TÔI">OUR EXPERTISE</span>
+                </div>
+
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="service-card group border border-white/10 hover:border-white/40 transition-all duration-500 reveal-up h-full flex flex-col justify-between p-6">
+                        <div class="service-card-bg" style="background-image: url('https://images.unsplash.com/photo-1526304640152-d4619684e484?q=80&w=800&auto=format&fit=crop');"></div>
+                        <div class="service-card-overlay"></div>
+                        <div class="service-card-content h-full flex flex-col justify-between relative z-10">
+                            <div>
+                                <div class="text-3xl mb-4 font-tech group-hover:translate-x-2 transition-transform opacity-50">01</div>
+                                <h3 class="text-xl font-bold mb-3" data-ja="Global Expansion" data-en="Global Expansion" data-vn="Mở rộng toàn cầu">Global Expansion</h3>
+                                <p class="text-xs text-gray-300 group-hover:text-white leading-relaxed"
+                                   data-ja="日本企業およびベトナム企業の相互誘致、進出支援。国境を越えた新たな機会を創出します。"
+                                   data-en="Mutual attraction and expansion support for Japanese and Vietnamese companies. Creating new opportunities across borders."
+                                   data-vn="Thu hút và hỗ trợ mở rộng lẫn nhau cho các doanh nghiệp Nhật Bản và Việt Nam. Tạo ra cơ hội mới vượt qua biên giới.">
+                                    日本企業およびベトナム企業の相互誘致、進出支援。国境を越えた新たな機会を創出します。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="service-card group border border-white/10 hover:border-white/40 transition-all duration-500 reveal-up h-full flex flex-col justify-between p-6" style="transition-delay: 0.1s;">
+                        <div class="service-card-bg" style="background-image: url('https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop');"></div>
+                        <div class="service-card-overlay"></div>
+                        <div class="service-card-content h-full flex flex-col justify-between relative z-10">
+                            <div>
+                                <div class="text-3xl mb-4 font-tech group-hover:translate-x-2 transition-transform opacity-50">02</div>
+                                <h3 class="text-xl font-bold mb-3" data-ja="AI/IT System Dev" data-en="AI/IT System Dev" data-vn="Phát triển hệ thống AI/CNTT">AI/IT System Dev</h3>
+                                <p class="text-xs text-gray-300 group-hover:text-white leading-relaxed"
+                                   data-ja="AI/IT システム開発。最先端技術でビジネスプロセスを革新します。"
+                                   data-en="AI/IT System Development. Innovating business processes with cutting-edge technology."
+                                   data-vn="Phát triển hệ thống AI/CNTT. Đổi mới quy trình kinh doanh với công nghệ tiên tiến.">
+                                    AI/IT システム開発。最先端技術でビジネスプロセスを革新します。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="service-card group border border-white/10 hover:border-white/40 transition-all duration-500 reveal-up h-full flex flex-col justify-between p-6" style="transition-delay: 0.2s;">
+                        <div class="service-card-bg" style="background-image: url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop');"></div>
+                        <div class="service-card-overlay"></div>
+                        <div class="service-card-content h-full flex flex-col justify-between relative z-10">
+                            <div>
+                                <div class="text-3xl mb-4 font-tech group-hover:translate-x-2 transition-transform opacity-50">03</div>
+                                <h3 class="text-xl font-bold mb-3" data-ja="SME Management Tool" data-en="SME Management Tool" data-vn="Công cụ quản lý doanh nghiệp vừa và nhỏ">SME Management Tool</h3>
+                                <p class="text-xs text-gray-300 group-hover:text-white leading-relaxed"
+                                   data-ja="中小企業向け一元管理ツール提供。業務効率化と経営の可視化を実現します。"
+                                   data-en="Provision of centralized management tools for SMEs. Achieving operational efficiency and management visualization."
+                                   data-vn="Cung cấp công cụ quản lý tập trung cho các doanh nghiệp vừa và nhỏ. Đạt được hiệu quả hoạt động và trực quan hóa quản lý.">
+                                    中小企業向け一元管理ツール提供。業務効率化と経営の可視化を実現します。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="service-card group border border-white/10 hover:border-white/40 transition-all duration-500 reveal-up h-full flex flex-col justify-between p-6" style="transition-delay: 0.3s;">
+                        <div class="service-card-bg" style="background-image: url('https://images.unsplash.com/photo-1578575437130-527eed3abbec?q=80&w=800&auto=format&fit=crop');"></div>
+                        <div class="service-card-overlay"></div>
+                        <div class="service-card-content h-full flex flex-col justify-between relative z-10">
+                            <div>
+                                <div class="text-3xl mb-4 font-tech group-hover:translate-x-2 transition-transform opacity-50">04</div>
+                                <h3 class="text-xl font-bold mb-3" data-ja="Import & Export" data-en="Import & Export" data-vn="Xuất nhập khẩu">Import & Export</h3>
+                                <p class="text-xs text-gray-300 group-hover:text-white leading-relaxed"
+                                   data-ja="海外への輸出入。グローバルな物流ネットワークでビジネスを拡大します。"
+                                   data-en="Import and export to overseas. Expanding business with a global logistics network."
+                                   data-vn="Xuất nhập khẩu ra nước ngoài. Mở rộng kinh doanh với mạng lưới logistics toàn cầu.">
+                                    海外への輸出入。グローバルな物流ネットワークでビジネスを拡大します。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="service-card group border border-white/10 hover:border-white/40 transition-all duration-500 reveal-up h-full flex flex-col justify-between p-6" style="transition-delay: 0.4s;">
+                        <div class="service-card-bg" style="background-image: url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop');"></div>
+                        <div class="service-card-overlay"></div>
+                        <div class="service-card-content h-full flex flex-col justify-between relative z-10">
+                            <div>
+                                <div class="text-3xl mb-4 font-tech group-hover:translate-x-2 transition-transform opacity-50">05</div>
+                                <h3 class="text-xl font-bold mb-3" data-ja="Real Estate" data-en="Real Estate" data-vn="Bất động sản">Real Estate</h3>
+                                <p class="text-xs text-gray-300 group-hover:text-white leading-relaxed"
+                                   data-ja="国内外不動産。価値ある物件の売買・仲介・管理をサポートします。"
+                                   data-en="Domestic and international real estate. Supporting the purchase, sale, brokerage, and management of valuable properties."
+                                   data-vn="Bất động sản trong và ngoài nước. Hỗ trợ mua bán, môi giới và quản lý các bất động sản giá trị.">
+                                    国内外不動産。価値ある物件の売買・仲介・管理をサポートします。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="service-card group border border-white/10 hover:border-white/40 transition-all duration-500 reveal-up h-full flex flex-col justify-between p-6" style="transition-delay: 0.5s;">
+                        <div class="service-card-bg" style="background-image: url('https://images.unsplash.com/photo-1554224155-6726b3ff858f?q=80&w=800&auto=format&fit=crop');"></div>
+                        <div class="service-card-overlay"></div>
+                        <div class="service-card-content h-full flex flex-col justify-between relative z-10">
+                            <div>
+                                <div class="text-3xl mb-4 font-tech group-hover:translate-x-2 transition-transform opacity-50">06</div>
+                                <h3 class="text-xl font-bold mb-3" data-ja="Subsidies & Grants" data-en="Subsidies & Grants" data-vn="Trợ cấp & Tài trợ">Subsidies & Grants</h3>
+                                <p class="text-xs text-gray-300 group-hover:text-white leading-relaxed"
+                                   data-ja="各サービスに付随する補助金/助成金のご案内。お客様のニーズに合わせて柔軟に対応いたします。"
+                                   data-en="Guidance on subsidies and grants related to each service. We respond flexibly to customer needs."
+                                   data-vn="Hướng dẫn về trợ cấp và tài trợ liên quan đến từng dịch vụ. Chúng tôi đáp ứng linh hoạt các nhu cầu của khách hàng.">
+                                    各サービスに付随する補助金/助成金のご案内。お客様のニーズに合わせて柔軟に対応いたします。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="service-card group border border-white/10 hover:border-white/40 transition-all duration-500 reveal-up h-full flex flex-col justify-between p-6" style="transition-delay: 0.6s;">
+                        <div class="service-card-bg" style="background-image: url('https://images.unsplash.com/photo-1556740714-a8395b3bf30f?q=80&w=800&auto=format&fit=crop');"></div>
+                        <div class="service-card-overlay"></div>
+                        <div class="service-card-content h-full flex flex-col justify-between relative z-10">
+                            <div>
+                                <div class="text-3xl mb-4 font-tech group-hover:translate-x-2 transition-transform opacity-50">07</div>
+                                <h3 class="text-xl font-bold mb-3" data-ja="Telemarketing" data-en="Telemarketing" data-vn="Tiếp thị qua điện thoại">Telemarketing</h3>
+                                <p class="text-xs text-gray-300 group-hover:text-white leading-relaxed"
+                                   data-ja="戦略的なテレアポ事業による新規顧客開拓サポート。"
+                                   data-en="Strategic telemarketing support for new customer acquisition."
+                                   data-vn="Hỗ trợ tiếp thị qua điện thoại chiến lược để thu hút khách hàng mới.">
+                                    戦略的なテレアポ事業による新規顧客開拓サポート。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="service-card group border border-white/10 hover:border-white/40 transition-all duration-500 reveal-up h-full flex flex-col justify-between p-6" style="transition-delay: 0.7s;">
+                        <div class="service-card-bg" style="background-image: url('https://images.unsplash.com/photo-1606811841689-23dfddce3e95?q=80&w=800&auto=format&fit=crop');"></div>
+                        <div class="service-card-overlay"></div>
+                        <div class="service-card-content h-full flex flex-col justify-between relative z-10">
+                            <div>
+                                <div class="text-3xl mb-4 font-tech group-hover:translate-x-2 transition-transform opacity-50">08</div>
+                                <h3 class="text-xl font-bold mb-3" data-ja="Home-visit Dentistry" data-en="Home-visit Dentistry" data-vn="Nha khoa tại nhà">Home-visit Dentistry</h3>
+                                <p class="text-xs text-gray-300 group-hover:text-white leading-relaxed"
+                                   data-ja="訪問歯科診療に関する各種サポート・コンサルティング。"
+                                   data-en="Various support and consulting for home-visit dental care."
+                                   data-vn="Hỗ trợ và tư vấn đa dạng cho chăm sóc nha khoa tại nhà.">
+                                    訪問歯科診療に関する各種サポート・コンサルティング。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="rakureba" class="py-24 px-6 relative z-10 border-t border-white/10 overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-900/20 to-purple-900/20 opacity-50"></div>
+            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+            
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12 relative z-20">
+                <div class="md:w-1/2 reveal-up">
+                    <span class="inline-block py-1 px-3 border border-blue-400 text-blue-400 text-xs font-bold tracking-widest mb-4">PRODUCT HIGHLIGHT</span>
+                    <h2 class="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400" 
+                              data-ja="業務改善ツール<br>「ラクレバ」"
+                              data-en="Business Improvement<br>Tool 'Rakureba'"
+                              data-vn="Công cụ cải tiến kinh doanh<br>'Rakureba'">
+                            業務改善ツール<br>「ラクレバ」
+                        </span>
+                    </h2>
+                    <p class="text-gray-300 leading-loose mb-8 text-lg"
+                       data-ja="複雑な業務フローをシンプルに。中小企業のDXを加速させる、次世代の管理プラットフォームです。"
+                       data-en="Simplifying complex business flows. A next-generation management platform accelerating DX for SMEs."
+                       data-vn="Đơn giản hóa quy trình kinh doanh phức tạp. Nền tảng quản lý thế hệ tiếp theo thúc đẩy chuyển đổi số cho doanh nghiệp vừa và nhỏ.">
+                        複雑な業務フローをシンプルに。中小企業のDXを加速させる、次世代の管理プラットフォームです。
+                    </p>
+                    <a href="https://rakureba99.vercel.app" target="_blank" rel="noopener noreferrer" class="group relative inline-flex items-center gap-4 px-8 py-4 bg-white text-black overflow-hidden transition-all duration-300 hover:bg-gray-200">
+                        <span class="font-bold tracking-widest relative z-10" data-ja="VISIT RAKUREBA" data-en="VISIT RAKUREBA" data-vn="TRUY CẬP RAKUREBA">VISIT RAKUREBA</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 group-hover:translate-x-1 transition-transform relative z-10">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                        </svg>
+                    </a>
+                </div>
+                <div class="md:w-1/2 w-full reveal-up">
+                    <div class="relative rounded-lg overflow-hidden border border-white/10 group aspect-video shadow-2xl shadow-blue-900/20">
+                        <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 z-10 group-hover:opacity-0 transition-opacity duration-500"></div>
+                        <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2426&auto=format&fit=crop" alt="Rakureba Dashboard" class="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-700">
+                        <div class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                            <div class="bg-black/40 backdrop-blur-sm border border-white/20 p-6 rounded-xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                                <span class="font-tech text-2xl font-bold tracking-widest text-white">RAKUREBA</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="company" class="py-24 px-6 relative z-10 bg-black/40 backdrop-blur-sm border-y border-white/5">
+            <div class="max-w-5xl mx-auto">
+                <div class="flex justify-between items-end mb-16 border-b border-white/20 pb-4 reveal-up">
+                    <h2 class="font-tech text-4xl md:text-6xl" data-ja="COMPANY" data-en="COMPANY" data-vn="CÔNG TY">COMPANY</h2>
+                    <span class="text-xs tracking-widest" data-ja="CORPORATE PROFILE" data-en="CORPORATE PROFILE" data-vn="HỒ SƠ CÔNG TY">CORPORATE PROFILE</span>
+                </div>
+
+                <div class="reveal-up">
+                    <div class="border-t border-white/20">
+                        <dl class="grid grid-cols-1 md:grid-cols-12 gap-y-4 md:gap-y-0 border-b border-white/20 group hover:bg-white/5 transition-colors duration-300">
+                            <dt class="py-6 md:col-span-4 font-bold text-gray-400 pl-2 font-tech tracking-wider" data-ja="COMPANY NAME" data-en="COMPANY NAME" data-vn="TÊN CÔNG TY">COMPANY NAME</dt>
+                            <dd class="py-6 md:col-span-8 md:border-l md:border-white/10 md:pl-8">
+                                <span data-ja="株式会社セルレバ" data-en="Self Leverage Co., Ltd." data-vn="Công ty Self Leverage">株式会社セルレバ</span><br>
+                                <span class="text-sm text-gray-500 font-tech">Self Leverage Co., Ltd.</span>
+                            </dd>
+                        </dl>
+
+                        <dl class="grid grid-cols-1 md:grid-cols-12 gap-y-4 md:gap-y-0 border-b border-white/20 group hover:bg-white/5 transition-colors duration-300">
+                            <dt class="py-6 md:col-span-4 font-bold text-gray-400 pl-2 font-tech tracking-wider" data-ja="ESTABLISHED" data-en="ESTABLISHED" data-vn="THÀNH LẬP">ESTABLISHED</dt>
+                            <dd class="py-6 md:col-span-8 md:border-l md:border-white/10 md:pl-8"
+                                data-ja="2026年 1月 26日" data-en="January 26, 2026" data-vn="26 tháng 1 năm 2026">
+                                2026年 1月 26日
+                            </dd>
+                        </dl>
+
+                        <dl class="grid grid-cols-1 md:grid-cols-12 gap-y-4 md:gap-y-0 border-b border-white/20 group hover:bg-white/5 transition-colors duration-300">
+                            <dt class="py-6 md:col-span-4 font-bold text-gray-400 pl-2 font-tech tracking-wider" data-ja="REPRESENTATIVE" data-en="REPRESENTATIVE" data-vn="ĐẠI DIỆN">REPRESENTATIVE</dt>
+                            <dd class="py-6 md:col-span-8 md:border-l md:border-white/10 md:pl-8"
+                                data-ja="代表取締役　柿内 祐磨" data-en="CEO: Yuma Kakiuchi" data-vn="Giám đốc đại diện: Yuma Kakiuchi">
+                                代表取締役　柿内 祐磨
+                            </dd>
+                        </dl>
+
+                        <dl class="grid grid-cols-1 md:grid-cols-12 gap-y-4 md:gap-y-0 border-b border-white/20 group hover:bg-white/5 transition-colors duration-300">
+                            <dt class="py-6 md:col-span-4 font-bold text-gray-400 pl-2 font-tech tracking-wider" data-ja="HEAD OFFICE" data-en="HEAD OFFICE" data-vn="TRỤ SỞ CHÍNH">HEAD OFFICE</dt>
+                            <dd class="py-6 md:col-span-8 md:border-l md:border-white/10 md:pl-8"
+                                data-ja="〒542-0081<br>大阪市中央区南船場3-2-22<br>おおきに南船場ビル205"
+                                data-en="205 Ookini Minamisenba Bldg, 3-2-22 Minamisenba,<br>Chuo-ku, Osaka 542-0081"
+                                data-vn="205 Tòa nhà Ookini Minamisenba, 3-2-22 Minamisenba,<br>Quận Chuo, Osaka 542-0081">
+                                〒542-0081<br>
+                                大阪市中央区南船場3-2-22<br>
+                                おおきに南船場ビル205
+                            </dd>
+                        </dl>
+
+                        <dl class="grid grid-cols-1 md:grid-cols-12 gap-y-4 md:gap-y-0 border-b border-white/20 group hover:bg-white/5 transition-colors duration-300">
+                            <dt class="py-6 md:col-span-4 font-bold text-gray-400 pl-2 font-tech tracking-wider" data-ja="CAPITAL" data-en="CAPITAL" data-vn="VỐN">CAPITAL</dt>
+                            <dd class="py-6 md:col-span-8 md:border-l md:border-white/10 md:pl-8"
+                                data-ja="100万円" data-en="1,000,000 JPY" data-vn="1.000.000 Yên">
+                                100万円
+                            </dd>
+                        </dl>
+
+                        <dl class="grid grid-cols-1 md:grid-cols-12 gap-y-4 md:gap-y-0 border-b border-white/20 group hover:bg-white/5 transition-colors duration-300">
+                            <dt class="py-6 md:col-span-4 font-bold text-gray-400 pl-2 font-tech tracking-wider" data-ja="BUSINESS" data-en="BUSINESS" data-vn="KINH DOANH">BUSINESS</dt>
+                            <dd class="py-6 md:col-span-8 md:border-l md:border-white/10 md:pl-8 space-y-2">
+                                <ul class="list-disc list-outside ml-4 text-gray-300 space-y-1"
+                                    data-ja="
+                                    <li>日本・ベトナム企業の相互誘致、進出支援</li>
+                                    <li>AI/IT システム開発</li>
+                                    <li>中小企業向け一元管理ツール提供</li>
+                                    <li>海外への輸出入</li>
+                                    <li>国内外不動産</li>
+                                    <li>各サービスに付随する補助金/助成金</li>
+                                    <li>テレアポ事業</li>
+                                    <li>訪問歯科</li>"
+                                    data-en="
+                                    <li>Japan-Vietnam Business Matching & Expansion</li>
+                                    <li>AI/IT System Development</li>
+                                    <li>All-in-one Management Tool for SMEs</li>
+                                    <li>Import & Export to Overseas</li>
+                                    <li>Domestic & International Real Estate</li>
+                                    <li>Subsidies/Grants for services</li>
+                                    <li>Telemarketing</li>
+                                    <li>Home-visit Dentistry</li>"
+                                    data-vn="
+                                    <li>Kết nối kinh doanh Nhật Bản - Việt Nam</li>
+                                    <li>Phát triển hệ thống AI/CNTT</li>
+                                    <li>Cung cấp công cụ quản lý cho SMEs</li>
+                                    <li>Xuất nhập khẩu ra nước ngoài</li>
+                                    <li>Bất động sản trong và ngoài nước</li>
+                                    <li>Trợ cấp/Tài trợ đi kèm dịch vụ</li>
+                                    <li>Tiếp thị qua điện thoại</li>
+                                    <li>Nha khoa tại nhà</li>">
+                                    <li>日本・ベトナム企業の相互誘致、進出支援</li>
+                                    <li>AI/IT システム開発</li>
+                                    <li>中小企業向け一元管理ツール提供</li>
+                                    <li>海外への輸出入</li>
+                                    <li>国内外不動産</li>
+                                    <li>各サービスに付随する補助金/助成金</li>
+                                    <li>テレアポ事業</li>
+                                    <li>訪問歯科</li>
+                                </ul>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="min-h-screen flex items-center py-24 px-6 relative z-10">
+            <div class="max-w-3xl mx-auto w-full">
+                <h2 class="font-tech text-5xl md:text-7xl mb-12 text-center reveal-up" data-ja="CONTACT" data-en="CONTACT" data-vn="LIÊN HỆ">CONTACT</h2>
+                
+                <form class="space-y-8 reveal-up" action="https://formspree.io/f/mpwvbrdl" method="POST">
+                    <div class="group relative">
+                        <input type="text" id="name" name="name" required class="w-full bg-transparent border-b border-gray-700 py-4 text-xl focus:outline-none focus:border-white transition-colors peer placeholder-transparent">
+                        <label for="name" class="absolute left-0 top-4 text-gray-500 transition-all peer-focus:-top-4 peer-focus:text-xs peer-focus:text-white peer-valid:-top-4 peer-valid:text-xs peer-valid:text-white"
+                               data-ja="Name / Company" data-en="Name / Company" data-vn="Tên / Công ty">Name / Company</label>
+                    </div>
+                    
+                    <div class="group relative">
+                        <input type="email" id="email" name="email" required class="w-full bg-transparent border-b border-gray-700 py-4 text-xl focus:outline-none focus:border-white transition-colors peer placeholder-transparent">
+                        <label for="email" class="absolute left-0 top-4 text-gray-500 transition-all peer-focus:-top-4 peer-focus:text-xs peer-focus:text-white peer-valid:-top-4 peer-valid:text-xs peer-valid:text-white"
+                               data-ja="Email Address" data-en="Email Address" data-vn="Địa chỉ Email">Email Address</label>
+                    </div>
+                    
+                    <div class="group relative">
+                        <textarea id="message" name="message" rows="4" required class="w-full bg-transparent border-b border-gray-700 py-4 text-xl focus:outline-none focus:border-white transition-colors peer placeholder-transparent resize-none"></textarea>
+                        <label for="message" class="absolute left-0 top-4 text-gray-500 transition-all peer-focus:-top-4 peer-focus:text-xs peer-focus:text-white peer-valid:-top-4 peer-valid:text-xs peer-valid:text-white"
+                               data-ja="Message" data-en="Message" data-vn="Tin nhắn">Message</label>
+                    </div>
+
+                    <div class="pt-8 text-center">
+                        <button type="submit" class="group relative inline-flex items-center gap-4 px-12 py-4 border border-white overflow-hidden hover:bg-white hover:text-black transition-all duration-300">
+                            <span class="font-tech tracking-widest relative z-10" data-ja="SEND MESSAGE" data-en="SEND MESSAGE" data-vn="GỬI TIN NHẮN">SEND MESSAGE</span>
+                            <div class="absolute inset-0 bg-white transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out"></div>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <footer class="py-12 border-t border-white/10 px-6">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold tracking-widest font-tech text-xl">Self Leverage</span>
+                </div>
+                <div class="text-xs text-gray-500 font-tech">
+                    &copy; 2026 セルレバ CO.,LTD
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        // --- 1. Custom Cursor Logic ---
+        const cursorDot = document.querySelector('.cursor-dot');
+        const cursorOutline = document.querySelector('.cursor-outline');
+
+        window.addEventListener('mousemove', (e) => {
+            const posX = e.clientX;
+            const posY = e.clientY;
+            cursorDot.style.left = `${posX}px`;
+            cursorDot.style.top = `${posY}px`;
+            cursorOutline.animate({ left: `${posX}px`, top: `${posY}px` }, { duration: 500, fill: "forwards" });
+        });
+
+        const interactiveElements = document.querySelectorAll('a, button, input, textarea, .service-card');
+        interactiveElements.forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                cursorOutline.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                cursorOutline.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            });
+            el.addEventListener('mouseleave', () => {
+                cursorOutline.style.transform = 'translate(-50%, -50%) scale(1)';
+                cursorOutline.style.backgroundColor = 'transparent';
+            });
+        });
+
+        // --- 2. Three.js High-Tech Background ---
+        const initThreeJS = () => {
+            const container = document.getElementById('webgl-container');
+            const scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000000, 0.002);
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 40; camera.position.y = 15; camera.lookAt(0, 0, 0);
+
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            setTimeout(() => { container.style.opacity = 1; }, 500);
+
+            const particleCount = 4000;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const originalPositions = new Float32Array(particleCount * 3);
+            
+            const branches = 3; const spin = 1; const random = 0.5; const galaxyRadius = 45;
+
+            for(let i = 0; i < particleCount; i++) {
+                const i3 = i * 3;
+                const r = Math.random() * galaxyRadius;
+                const spinAngle = r * spin;
+                const branchAngle = (i % branches) / branches * Math.PI * 2;
+                const randomX = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1) * random * r;
+                const randomY = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1) * random * r * 0.5; 
+                const randomZ = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1) * random * r;
+
+                const x = Math.cos(branchAngle + spinAngle) * r + randomX;
+                const y = randomY; 
+                const z = Math.sin(branchAngle + spinAngle) * r + randomZ;
+
+                positions[i3] = x; positions[i3+1] = y; positions[i3+2] = z;
+                originalPositions[i3] = x; originalPositions[i3+1] = y; originalPositions[i3+2] = z;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const material = new THREE.PointsMaterial({
+                color: 0xffffff, size: 0.18, transparent: true, opacity: 0.9,
+                sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+
+            const mouse = new THREE.Vector2(-1000, -1000);
+            let explosionPower = 0;
+            const clickPosition = new THREE.Vector2(0, 0);
+            
+            let planeWidth, planeHeight;
+            const updatePlaneSize = () => {
+                const dist = camera.position.distanceTo(new THREE.Vector3(0,0,0));
+                const vFov = THREE.Math.degToRad(camera.fov);
+                planeHeight = 2 * Math.tan(vFov / 2) * dist;
+                planeWidth = planeHeight * camera.aspect;
+            };
+            updatePlaneSize();
+
+            const onPointerMove = (x, y) => {
+                const ndcX = (x / window.innerWidth) * 2 - 1;
+                const ndcY = -(y / window.innerHeight) * 2 + 1;
+                mouse.x = ndcX * (planeWidth / 2);
+                mouse.y = ndcY * (planeHeight / 2) + camera.position.y * 0.5;
+            };
+
+            const onPointerDown = (x, y) => {
+                const ndcX = (x / window.innerWidth) * 2 - 1;
+                const ndcY = -(y / window.innerHeight) * 2 + 1;
+                clickPosition.x = ndcX * (planeWidth / 2);
+                clickPosition.y = ndcY * (planeHeight / 2) + camera.position.y * 0.5;
+                // タップ時の弾ける強さを1.0から1.5にアップしてバースト感を強調
+                explosionPower = 1.5;
+            };
+
+            document.addEventListener('mousemove', (e) => onPointerMove(e.clientX, e.clientY));
+            document.addEventListener('touchmove', (e) => {
+                if(e.touches.length > 0) onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: true });
+            document.addEventListener('mousedown', (e) => onPointerDown(e.clientX, e.clientY));
+            document.addEventListener('touchstart', (e) => {
+                if(e.touches.length > 0) onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: true });
+
+            const clock = new THREE.Clock();
+            const animate = () => {
+                requestAnimationFrame(animate);
+                const elapsedTime = clock.getElapsedTime();
+                const positions = particles.geometry.attributes.position.array;
+
+                particles.rotation.y = elapsedTime * 0.05;
+                explosionPower *= 0.95;
+                if (explosionPower < 0.001) explosionPower = 0;
+
+                for(let i = 0; i < particleCount; i++) {
+                    const i3 = i * 3;
+                    const ox = originalPositions[i3]; const oy = originalPositions[i3+1]; const oz = originalPositions[i3+2];
+                    let px = positions[i3]; let py = positions[i3+1]; let pz = positions[i3+2];
+
+                    const breath = Math.sin(elapsedTime * 0.5 + ox * 0.1) * 0.1;
+                    const worldX = px * Math.cos(particles.rotation.y) + pz * Math.sin(particles.rotation.y);
+                    const worldZ = -px * Math.sin(particles.rotation.y) + pz * Math.cos(particles.rotation.y);
+                    const worldY = py; 
+
+                    const dx = mouse.x - worldX; const dy = mouse.y - worldY; 
+                    const distSq = dx*dx + dy*dy;
+                    const radius = 12; const radiusSq = radius * radius;
+                    let forceX = 0, forceY = 0, forceZ = 0;
+
+                    if (distSq < radiusSq) {
+                        const dist = Math.sqrt(distSq);
+                        const force = Math.pow((radius - dist) / radius, 3); 
+                        const angle = Math.atan2(dy, dx);
+                        const repulsionStrength = 8.0; 
+                        forceX = -Math.cos(angle) * force * repulsionStrength;
+                        forceY = (Math.random() - 0.5) * force * repulsionStrength * 2; 
+                        forceZ = (Math.random() - 0.5) * force * repulsionStrength * 2;
+                    }
+
+                    // Explosion Effect (バースト強化: 乗数を20→60に拡大)
+                    let explodeX = 0, explodeY = 0, explodeZ = 0;
+                    if (explosionPower > 0) {
+                        const edx = clickPosition.x - worldX; const edy = clickPosition.y - worldY;
+                        const edistSq = edx*edx + edy*edy;
+                        const eAngle = Math.atan2(edy, edx);
+                        const eForce = Math.max(0, 100 / (Math.sqrt(edistSq) + 5)); 
+                        explodeX = -Math.cos(eAngle) * eForce * explosionPower * 60;
+                        explodeY = -Math.sin(eAngle) * eForce * explosionPower * 60;
+                        explodeZ = (Math.random() - 0.5) * explosionPower * 80;
+                    }
+
+                    const targetX = ox + forceX * 3 + explodeX;
+                    const targetY = oy + breath + forceY * 3 + explodeY;
+                    const targetZ = oz + forceZ * 3 + explodeZ;
+
+                    positions[i3] += (targetX - px) * 0.08;
+                    positions[i3+1] += (targetY - py) * 0.08;
+                    positions[i3+2] += (targetZ - pz) * 0.08;
+                }
+                
+                particles.geometry.attributes.position.needsUpdate = true;
+                renderer.render(scene, camera);
+            };
+
+            animate();
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                updatePlaneSize();
+            });
+        };
+
+        // --- 3. GSAP Animations ---
+        const initGSAP = () => {
+            gsap.registerPlugin(ScrollTrigger);
+            document.querySelectorAll('.reveal-up').forEach((element) => {
+                gsap.to(element, {
+                    scrollTrigger: { trigger: element, start: "top 85%", toggleActions: "play none none reverse" },
+                    y: 0, opacity: 1, duration: 1, ease: "power3.out"
+                });
+            });
+            gsap.from("h1.glitch-text", { duration: 1.5, y: 100, opacity: 0, ease: "power4.out", delay: 0.5 });
+            ScrollTrigger.create({
+                start: "top -80",
+                onUpdate: (self) => {
+                    const nav = document.getElementById("navbar");
+                    if (self.direction === 1) nav.classList.add("backdrop-blur-md", "bg-black/50", "border-b", "border-white/10");
+                    else if (self.scroll() < 50) nav.classList.remove("backdrop-blur-md", "bg-black/50", "border-b", "border-white/10");
+                }
+            });
+        };
+
+        // --- 4. Mobile Menu Logic ---
+        const initMobileMenu = () => {
+            const menuBtn = document.getElementById('menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const navbar = document.getElementById('navbar');
+            let isMenuOpen = false;
+            const toggleMenu = () => {
+                isMenuOpen = !isMenuOpen;
+                if (isMenuOpen) { mobileMenu.classList.add('mobile-menu-active'); navbar.classList.add('nav-open'); }
+                else { mobileMenu.classList.remove('mobile-menu-active'); navbar.classList.remove('nav-open'); }
+            };
+            menuBtn.addEventListener('click', toggleMenu);
+            document.querySelectorAll('.mobile-link').forEach(link => link.addEventListener('click', toggleMenu));
+        };
+
+        // --- 5. Language Toggle Logic ---
+        const initLangToggle = () => {
+            const toggleBtn = document.getElementById('lang-toggle');
+            const currentLangSpan = document.getElementById('current-lang');
+            const langs = ['ja', 'en', 'vn'];
+            const langLabels = {'ja': 'JP', 'en': 'EN', 'vn': 'VN'};
+            let currentIndex = 0;
+            const translatableElements = document.querySelectorAll('[data-ja]');
+
+            toggleBtn.addEventListener('click', () => {
+                currentIndex = (currentIndex + 1) % langs.length;
+                const currentLang = langs[currentIndex];
+                currentLangSpan.textContent = langLabels[currentLang];
+                gsap.to('body', { opacity: 0.8, duration: 0.2, yoyo: true, repeat: 1 });
+                setTimeout(() => {
+                    translatableElements.forEach(el => {
+                        const text = el.getAttribute(`data-${currentLang}`);
+                        if (text) el.innerHTML = text;
+                    });
+                }, 200);
+            });
+        };
+
+        window.addEventListener('load', () => {
+            initThreeJS();
+            initGSAP();
+            initMobileMenu();
+            initLangToggle();
+        });
+    </script>
+</body>
+</html>
