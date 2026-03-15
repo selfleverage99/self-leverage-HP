@@ -473,12 +473,11 @@
             });
         });
 
-        // --- 2. タップ時専用 パーティクルバースト (完全に黒からスタート) ---
+        // --- 2. タップ時専用 パーティクルバースト ---
         const initCanvasParticles = () => {
             const canvas = document.getElementById('bg-canvas');
             const ctx = canvas.getContext('2d');
             let width, height;
-            // 初期状態は空っぽ（何も表示されない）
             let particles = []; 
 
             function resize() {
@@ -504,7 +503,6 @@
                     this.x += this.speedX; 
                     this.y += this.speedY;
                     this.life -= this.decay;
-                    // 摩擦でスッと減速
                     this.speedX *= 0.92; 
                     this.speedY *= 0.92;
                 }
@@ -520,7 +518,6 @@
             }
 
             function createBurst(e) {
-                // タップされた位置を取得して粒を生成
                 const x = e.clientX || (e.touches && e.touches[0].clientX);
                 const y = e.clientY || (e.touches && e.touches[0].clientY);
                 const count = 40; 
@@ -533,9 +530,7 @@
             window.addEventListener('touchstart', createBurst, {passive: true});
 
             function animate() {
-                // 常に画面を真っ黒（透明）にクリア
                 ctx.clearRect(0, 0, width, height);
-                // 粒が存在する時だけ描画
                 particles.forEach((p, index) => {
                     p.update();
                     p.draw();
@@ -546,13 +541,15 @@
             animate();
         };
 
-        // --- 3. GSAP Animations ---
+        // --- 3. GSAP Animations (表示タイミングを早く修正) ---
         const initGSAP = () => {
             gsap.registerPlugin(ScrollTrigger);
             document.querySelectorAll('.reveal-up').forEach((element) => {
                 gsap.to(element, {
-                    scrollTrigger: { trigger: element, start: "top 85%", toggleActions: "play none none reverse" },
-                    y: 0, opacity: 1, duration: 1, ease: "power3.out"
+                    // startを top 85% → top 90% に変更し、より早く検知させる
+                    scrollTrigger: { trigger: element, start: "top 90%", toggleActions: "play none none reverse" },
+                    // durationを 1秒 → 0.9秒 に縮めて少し早く表示
+                    y: 0, opacity: 1, duration: 0.9, ease: "power3.out"
                 });
             });
             gsap.from("h1.glitch-text", { duration: 1.5, y: 100, opacity: 0, ease: "power4.out", delay: 0.5 });
@@ -605,7 +602,7 @@
         };
 
         window.addEventListener('load', () => {
-            initCanvasParticles(); // ← 純粋なタップ専用コードのみ起動
+            initCanvasParticles();
             initGSAP();
             initMobileMenu();
             initLangToggle();
