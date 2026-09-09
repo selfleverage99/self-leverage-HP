@@ -4,7 +4,7 @@ import './globals.css';
 import { LanguageProvider } from '@/lib/i18n/LanguageContext';
 import CustomCursor from '@/components/CustomCursor';
 import ParticleCanvas from '@/components/ParticleCanvas';
-import ScrollShape from '@/components/ScrollShape';
+import MoleculeShape from '@/components/MoleculeShape';
 import ScrollProgress from '@/components/ScrollProgress';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -49,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="antialiased selection:bg-white selection:text-black">
         <LanguageProvider>
           <ParticleCanvas />
-          <ScrollShape />
+          <MoleculeShape />
           <ScrollProgress />
           <CustomCursor />
           <Header />

@@ -355,8 +355,8 @@ body.touch-device .cursor-ring {
   }
 }
 
-/* ── Scroll-reactive 3D shape ── */
-.scroll-shape-wrap {
+/* ── Molecule shape (scatter / reassemble per section) ── */
+.molecule-shape-wrap {
   position: fixed;
   top: 50%;
   right: 4vw;
@@ -365,37 +365,14 @@ body.touch-device .cursor-ring {
   height: clamp(220px, 30vw, 460px);
   z-index: -1;
   pointer-events: none;
-  perspective: 1400px;
 }
-.scroll-shape-scene {
+.molecule-shape-canvas {
   width: 100%;
   height: 100%;
-  transform-style: preserve-3d;
-}
-.scroll-shape-rotor {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transform-style: preserve-3d;
-}
-.scroll-shape-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-.scroll-shape-core {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 10px;
-  height: 10px;
-  margin: -5px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 75%);
+  display: block;
 }
 @media (max-width: 768px) {
-  .scroll-shape-wrap {
+  .molecule-shape-wrap {
     right: 50%;
     transform: translate(50%, -50%);
     opacity: 0.6;

@@ -22,7 +22,7 @@ export const vn: Dictionary = {
   },
   philosophy: {
     eyebrow: '02 — TRIẾT LÝ',
-    quote: 'Càng lược bỏ nhiều, bản chất càng nổi bật.',
+    quote: 'PHILOSOPHY',
     body: 'Loại bỏ sự phức tạp để chỉ giữ lại những gì tinh túy nhất. Đó là phong cách của Self Leverage. Như tên gọi của chúng tôi, chúng tôi đóng vai trò là đòn bẩy để tối đa hóa tiềm năng vốn có của khách hàng.',
   },
   services: {

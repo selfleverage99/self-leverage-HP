@@ -22,7 +22,7 @@ export const en: Dictionary = {
   },
   philosophy: {
     eyebrow: '02 — PHILOSOPHY',
-    quote: 'The more you strip away, the more the essence stands out.',
+    quote: 'PHILOSOPHY',
     body: "Stripping away complexity to leave only the essence. That is the Self Leverage way. As our name implies, we serve as the lever to maximize our clients' inherent potential.",
   },
   services: {

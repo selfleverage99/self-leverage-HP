@@ -22,7 +22,7 @@ export const ja: Dictionary = {
   },
   philosophy: {
     eyebrow: '02 — PHILOSOPHY',
-    quote: '削ぎ落とすほどに、本質は際立つ。',
+    quote: 'PHILOSOPHY',
     body: '複雑さを極限まで削ぎ落とし、本質だけを残す。それが株式会社セルレバの流儀です。私たちは「Self Leverage」の名の通り、お客様自身の持つ力を最大限に引き出すためのレバーとなります。',
   },
   services: {
