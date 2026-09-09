@@ -18,44 +18,69 @@ interface Node extends Point3 {
   base: Point3;
 }
 
-const NODE_COUNT = 26;
-const BOND_NEIGHBORS = 2;
+const EDGE_NEIGHBORS = 5; // each icosahedron vertex connects to 5 others
+const POINTS_PER_EDGE = 11; // particles distributed along each edge, endpoints included
 const SPRING_K = 0.055;
 const DAMPING = 0.86;
 const SCATTER_SPRING_K = 0.09;
 const IDLE_SPIN_SPEED = 0.00012; // radians / ms
 const SCATTER_HOLD_MS = 420;
 
-function fibonacciSphere(count: number): Point3[] {
-  const points: Point3[] = [];
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-  for (let i = 0; i < count; i++) {
-    const y = 1 - (i / (count - 1)) * 2;
-    const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
-    const theta = goldenAngle * i;
-    points.push({ x: Math.cos(theta) * radiusAtY, y, z: Math.sin(theta) * radiusAtY });
-  }
-  return points;
+function icosahedronVertices(): Point3[] {
+  const phi = (1 + Math.sqrt(5)) / 2;
+  const raw: Point3[] = [
+    { x: 0, y: 1, z: phi },
+    { x: 0, y: 1, z: -phi },
+    { x: 0, y: -1, z: phi },
+    { x: 0, y: -1, z: -phi },
+    { x: 1, y: phi, z: 0 },
+    { x: 1, y: -phi, z: 0 },
+    { x: -1, y: phi, z: 0 },
+    { x: -1, y: -phi, z: 0 },
+    { x: phi, y: 0, z: 1 },
+    { x: phi, y: 0, z: -1 },
+    { x: -phi, y: 0, z: 1 },
+    { x: -phi, y: 0, z: -1 },
+  ];
+  const norm = Math.sqrt(1 + phi * phi);
+  return raw.map((v) => ({ x: v.x / norm, y: v.y / norm, z: v.z / norm }));
 }
 
-function buildBonds(points: Point3[]): [number, number][] {
+function buildEdges(vertices: Point3[]): [number, number][] {
   const pairs = new Set<string>();
-  const bonds: [number, number][] = [];
-  points.forEach((p, i) => {
-    const distances = points
+  const edges: [number, number][] = [];
+  vertices.forEach((p, i) => {
+    const nearest = vertices
       .map((q, j) => ({ j, d: (p.x - q.x) ** 2 + (p.y - q.y) ** 2 + (p.z - q.z) ** 2 }))
       .filter((e) => e.j !== i)
       .sort((a, b) => a.d - b.d)
-      .slice(0, BOND_NEIGHBORS);
-    distances.forEach(({ j }) => {
+      .slice(0, EDGE_NEIGHBORS);
+    nearest.forEach(({ j }) => {
       const key = i < j ? `${i}-${j}` : `${j}-${i}`;
       if (!pairs.has(key)) {
         pairs.add(key);
-        bonds.push([i, j]);
+        edges.push([i, j]);
       }
     });
   });
-  return bonds;
+  return edges;
+}
+
+function pointsAlongEdges(vertices: Point3[], edges: [number, number][]): Point3[] {
+  const points: Point3[] = [];
+  edges.forEach(([a, b]) => {
+    const va = vertices[a];
+    const vb = vertices[b];
+    for (let i = 0; i < POINTS_PER_EDGE; i++) {
+      const t = i / (POINTS_PER_EDGE - 1);
+      points.push({
+        x: va.x + (vb.x - va.x) * t,
+        y: va.y + (vb.y - va.y) * t,
+        z: va.z + (vb.z - va.z) * t,
+      });
+    }
+  });
+  return points;
 }
 
 function rotateY(p: Point3, angle: number): Point3 {
@@ -79,8 +104,9 @@ export default function MoleculeShape() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const basePoints = fibonacciSphere(NODE_COUNT);
-    const bonds = buildBonds(basePoints);
+    const vertices = icosahedronVertices();
+    const edges = buildEdges(vertices);
+    const basePoints = pointsAlongEdges(vertices, edges);
 
     let width = 0;
     let height = 0;
@@ -95,7 +121,7 @@ export default function MoleculeShape() {
       canvas.width = width * dpr;
       canvas.height = height * dpr;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
-      radius = Math.min(width, height) * 0.34;
+      radius = Math.min(width, height) * 0.36;
     }
     resize();
     window.addEventListener('resize', resize);
@@ -125,8 +151,8 @@ export default function MoleculeShape() {
       scattered = true;
       nodes.forEach((n) => {
         const dir = Math.sqrt(n.base.x ** 2 + n.base.y ** 2 + n.base.z ** 2) || 1;
-        const spread = radius * (2.4 + Math.random() * 1.6);
-        const jitter = () => (Math.random() - 0.5) * radius * 0.8;
+        const spread = radius * (2.2 + Math.random() * 1.8);
+        const jitter = () => (Math.random() - 0.5) * radius * 1.1;
         n.tx = (n.base.x / dir) * spread + jitter();
         n.ty = (n.base.y / dir) * spread + jitter();
         n.tz = (n.base.z / dir) * spread + jitter();
@@ -190,42 +216,21 @@ export default function MoleculeShape() {
       const cy = height / 2;
       const D = width * 1.3;
 
-      const projected = nodes.map((n) => {
+      for (const n of nodes) {
         const scale = D / (D + n.z);
-        return { sx: cx + n.x * scale, sy: cy + n.y * scale, scale, assembled: dist(n, n.tx, n.ty, n.tz) };
-      });
-
-      bonds.forEach(([a, b]) => {
-        const pa = projected[a];
-        const pb = projected[b];
-        const closeness = Math.max(0, 1 - Math.max(pa.assembled, pb.assembled) / (radius * 1.2));
-        if (closeness <= 0.02) return;
-        ctx.strokeStyle = `rgba(255,255,255,${0.16 * closeness})`;
-        ctx.lineWidth = 1;
+        const sx = cx + n.x * scale;
+        const sy = cy + n.y * scale;
+        const r = Math.max(0.6, 1.5 * scale);
+        const alpha = 0.28 + 0.4 * Math.min(1, scale - 0.5);
         ctx.beginPath();
-        ctx.moveTo(pa.sx, pa.sy);
-        ctx.lineTo(pb.sx, pb.sy);
-        ctx.stroke();
-      });
-
-      projected.forEach((p) => {
-        const r = Math.max(1.1, 2.4 * p.scale);
-        ctx.beginPath();
-        ctx.fillStyle = 'rgba(255,255,255,0.55)';
-        ctx.shadowBlur = 6;
-        ctx.shadowColor = 'rgba(255,255,255,0.35)';
-        ctx.arc(p.sx, p.sy, r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${Math.max(0.12, Math.min(0.85, alpha))})`;
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 0;
-      });
+      }
 
       raf = requestAnimationFrame(frame);
     }
     raf = requestAnimationFrame(frame);
-
-    function dist(n: Node, tx: number, ty: number, tz: number) {
-      return Math.sqrt((n.x - tx) ** 2 + (n.y - ty) ** 2 + (n.z - tz) ** 2);
-    }
 
     return () => {
       cancelAnimationFrame(raf);
