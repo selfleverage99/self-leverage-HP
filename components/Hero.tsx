@@ -25,7 +25,7 @@ export default function Hero() {
       <div className="relative z-10 max-w-[1100px]">
         <motion.p
           className="font-tech uppercase mb-9"
-          style={{ fontSize: 'clamp(.58rem,1.1vw,.72rem)', letterSpacing: '.48em', color: 'rgba(255,255,255,0.45)' }}
+          style={{ fontSize: 'clamp(.58rem,1.1vw,.72rem)', letterSpacing: '.48em', color: 'rgba(255,255,255,0.9)' }}
           initial="hidden"
           animate="show"
           variants={tagVariant}
@@ -46,7 +46,7 @@ export default function Hero() {
           style={{
             fontFamily: 'var(--font-inter), var(--font-noto-sans-jp), sans-serif',
             fontSize: 'clamp(.88rem,1.75vw,1.05rem)',
-            color: 'rgba(255,255,255,0.48)',
+            color: 'rgba(255,255,255,0.78)',
             lineHeight: '1.85',
             letterSpacing: '.02em',
             maxWidth: '500px',

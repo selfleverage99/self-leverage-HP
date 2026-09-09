@@ -10,7 +10,7 @@ export default function Footer() {
       <span className="font-tech font-bold uppercase" style={{ fontSize: '.9rem', letterSpacing: '.18em', color: '#fff' }}>
         Self Leverage
       </span>
-      <span className="font-tech" style={{ fontSize: '.6rem', letterSpacing: '.12em', color: 'rgba(255,255,255,0.25)' }}>
+      <span className="font-tech" style={{ fontSize: '.6rem', letterSpacing: '.12em', color: 'rgba(255,255,255,0.75)' }}>
         {dict.footer.copyright}
       </span>
     </footer>

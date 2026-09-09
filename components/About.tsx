@@ -19,11 +19,11 @@ export default function About() {
         </h2>
         <p
           className="mb-6"
-          style={{ color: 'rgba(255,255,255,0.72)', lineHeight: '1.9', fontSize: 'clamp(.95rem,1.75vw,1.08rem)', whiteSpace: 'pre-line' }}
+          style={{ color: 'rgba(255,255,255,0.9)', lineHeight: '1.9', fontSize: 'clamp(.95rem,1.75vw,1.08rem)', whiteSpace: 'pre-line' }}
         >
           {dict.about.body1}
         </p>
-        <p style={{ color: 'rgba(255,255,255,0.42)', lineHeight: '1.9', fontSize: 'clamp(.88rem,1.55vw,.98rem)', whiteSpace: 'pre-line' }}>
+        <p style={{ color: 'rgba(255,255,255,0.75)', lineHeight: '1.9', fontSize: 'clamp(.88rem,1.55vw,.98rem)', whiteSpace: 'pre-line' }}>
           {dict.about.body2}
         </p>
       </Reveal>

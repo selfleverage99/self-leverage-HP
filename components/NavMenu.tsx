@@ -7,12 +7,12 @@ interface Link {
   label: string;
 }
 
-export default function MobileMenu({ open, onClose, links }: { open: boolean; onClose: () => void; links: Link[] }) {
+export default function NavMenu({ open, onClose, links }: { open: boolean; onClose: () => void; links: Link[] }) {
   return (
     <AnimatePresence>
       {open && (
         <motion.div
-          className="mobile-menu flex md:hidden"
+          className="mobile-menu flex"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

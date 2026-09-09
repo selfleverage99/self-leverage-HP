@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { useMotionValueEvent, useScroll } from 'framer-motion';
 import { useLang } from '@/lib/i18n/LanguageContext';
-import MobileMenu from './MobileMenu';
+import NavMenu from './NavMenu';
 
 export default function Header() {
   const { dict, label, cycleLang } = useLang();
@@ -47,20 +47,12 @@ export default function Header() {
           </a>
 
           <div className="flex items-center gap-6">
-            <nav className="hidden md:flex gap-8 text-xs font-tech tracking-widest uppercase">
-              {links.map((l) => (
-                <a key={l.href} href={l.href} className="nav-link">
-                  {l.label}
-                </a>
-              ))}
-            </nav>
-
             <button onClick={cycleLang} className="lang-toggle" aria-label="switch language">
               {label}
             </button>
 
             <button
-              className="hamburger relative z-50 md:hidden flex flex-col justify-between items-end w-[26px] h-5"
+              className="hamburger relative z-50 flex flex-col justify-between items-end w-[26px] h-5"
               onClick={() => setMenuOpen((v) => !v)}
               aria-label="toggle menu"
               aria-expanded={menuOpen}
@@ -73,7 +65,7 @@ export default function Header() {
         </div>
       </header>
 
-      <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} links={links} />
+      <NavMenu open={menuOpen} onClose={() => setMenuOpen(false)} links={links} />
     </>
   );
 }

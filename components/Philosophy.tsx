@@ -26,7 +26,7 @@ export default function Philosophy() {
       <Reveal
         as="p"
         delay={0.2}
-        style={{ color: 'rgba(255,255,255,0.48)', lineHeight: '1.9', fontSize: 'clamp(.9rem,1.65vw,1.03rem)', maxWidth: '560px', whiteSpace: 'pre-line' }}
+        style={{ color: 'rgba(255,255,255,0.75)', lineHeight: '1.9', fontSize: 'clamp(.9rem,1.65vw,1.03rem)', maxWidth: '560px', whiteSpace: 'pre-line' }}
       >
         {dict.philosophy.body}
       </Reveal>

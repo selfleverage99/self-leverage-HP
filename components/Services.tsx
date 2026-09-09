@@ -30,7 +30,7 @@ export default function Services() {
           </Reveal>
           <span
             className="font-tech uppercase hidden sm:inline"
-            style={{ fontSize: '.6rem', letterSpacing: '.2em', color: 'rgba(255,255,255,0.35)' }}
+            style={{ fontSize: '.6rem', letterSpacing: '.2em', color: 'rgba(255,255,255,0.85)' }}
           >
             {dict.services.expertise}
           </span>

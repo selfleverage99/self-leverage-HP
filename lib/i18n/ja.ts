@@ -3,7 +3,7 @@ import type { Dictionary } from './types';
 export const ja: Dictionary = {
   nav: {
     about: 'About',
-    philosophy: 'Philosophy',
+    philosophy: 'PHILOSOPHY',
     services: 'Services',
     company: 'Company',
     contact: 'Contact',

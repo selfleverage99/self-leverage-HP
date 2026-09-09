@@ -26,7 +26,7 @@ export default function Company() {
           <Reveal as="h2" className="sec-heading" style={{ fontSize: 'clamp(2rem,7vw,6rem)', letterSpacing: '-0.015em' }}>
             {dict.company.heading}
           </Reveal>
-          <span className="font-tech uppercase" style={{ fontSize: '.6rem', letterSpacing: '.2em', color: 'rgba(255,255,255,0.35)' }}>
+          <span className="font-tech uppercase" style={{ fontSize: '.6rem', letterSpacing: '.2em', color: 'rgba(255,255,255,0.85)' }}>
             {dict.company.tag}
           </span>
         </div>
@@ -45,14 +45,14 @@ export default function Company() {
         </Reveal>
 
         <Reveal as="div" className="mt-24 pt-16" style={{ borderTop: '1px solid var(--line)' }}>
-          <h3 className="text-center mb-8 uppercase" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', letterSpacing: '.05em' }}>
+          <h3 className="text-center mb-8 uppercase" style={{ color: 'rgba(255,255,255,0.85)', fontSize: '1rem', letterSpacing: '.05em' }}>
             {dict.company.legalHeading}
           </h3>
           <dl style={{ borderTop: '1px solid var(--line)' }}>
             {dict.company.legalRows.map((row) => (
               <div className="tbl-row text-sm" key={row.label}>
                 <dt className="tbl-dt" style={{ fontSize: '.68rem' }}>{row.label}</dt>
-                <dd className="tbl-dd" style={{ fontSize: '.84rem', color: 'rgba(255,255,255,0.6)' }}>{row.value}</dd>
+                <dd className="tbl-dd" style={{ fontSize: '.84rem', color: 'rgba(255,255,255,0.85)' }}>{row.value}</dd>
               </div>
             ))}
           </dl>
