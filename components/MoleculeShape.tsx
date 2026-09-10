@@ -18,17 +18,49 @@ interface Node extends Point3 {
   base: Point3;
 }
 
-const EDGE_NEIGHBORS = 5; // each icosahedron vertex connects to 5 others
-const POINTS_PER_EDGE = 11; // particles distributed along each edge, endpoints included
+const TARGET_POINTS = 336;
 const SPRING_K = 0.055;
 const DAMPING = 0.86;
 const SCATTER_SPRING_K = 0.09;
 const IDLE_SPIN_SPEED = 0.00012; // radians / ms
-const SCATTER_HOLD_MS = 420;
+const SCATTER_HOLD_MS = 460;
+
+function normalize(points: Point3[]): Point3[] {
+  return points.map((p) => {
+    const m = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) || 1;
+    return { x: p.x / m, y: p.y / m, z: p.z / m };
+  });
+}
+
+function tetrahedronVertices(): Point3[] {
+  return normalize([
+    { x: 1, y: 1, z: 1 },
+    { x: 1, y: -1, z: -1 },
+    { x: -1, y: 1, z: -1 },
+    { x: -1, y: -1, z: 1 },
+  ]);
+}
+
+function cubeVertices(): Point3[] {
+  const pts: Point3[] = [];
+  for (const sx of [1, -1]) for (const sy of [1, -1]) for (const sz of [1, -1]) pts.push({ x: sx, y: sy, z: sz });
+  return normalize(pts);
+}
+
+function octahedronVertices(): Point3[] {
+  return normalize([
+    { x: 1, y: 0, z: 0 },
+    { x: -1, y: 0, z: 0 },
+    { x: 0, y: 1, z: 0 },
+    { x: 0, y: -1, z: 0 },
+    { x: 0, y: 0, z: 1 },
+    { x: 0, y: 0, z: -1 },
+  ]);
+}
 
 function icosahedronVertices(): Point3[] {
   const phi = (1 + Math.sqrt(5)) / 2;
-  const raw: Point3[] = [
+  return normalize([
     { x: 0, y: 1, z: phi },
     { x: 0, y: 1, z: -phi },
     { x: 0, y: -1, z: phi },
@@ -41,12 +73,21 @@ function icosahedronVertices(): Point3[] {
     { x: phi, y: 0, z: -1 },
     { x: -phi, y: 0, z: 1 },
     { x: -phi, y: 0, z: -1 },
-  ];
-  const norm = Math.sqrt(1 + phi * phi);
-  return raw.map((v) => ({ x: v.x / norm, y: v.y / norm, z: v.z / norm }));
+  ]);
 }
 
-function buildEdges(vertices: Point3[]): [number, number][] {
+function dodecahedronVertices(): Point3[] {
+  const phi = (1 + Math.sqrt(5)) / 2;
+  const invPhi = 1 / phi;
+  const pts: Point3[] = [];
+  for (const sx of [1, -1]) for (const sy of [1, -1]) for (const sz of [1, -1]) pts.push({ x: sx, y: sy, z: sz });
+  for (const sy of [1, -1]) for (const sz of [1, -1]) pts.push({ x: 0, y: sy * invPhi, z: sz * phi });
+  for (const sx of [1, -1]) for (const sy of [1, -1]) pts.push({ x: sx * invPhi, y: sy * phi, z: 0 });
+  for (const sx of [1, -1]) for (const sz of [1, -1]) pts.push({ x: sx * phi, y: 0, z: sz * invPhi });
+  return normalize(pts);
+}
+
+function nearestEdges(vertices: Point3[], k: number): [number, number][] {
   const pairs = new Set<string>();
   const edges: [number, number][] = [];
   vertices.forEach((p, i) => {
@@ -54,7 +95,7 @@ function buildEdges(vertices: Point3[]): [number, number][] {
       .map((q, j) => ({ j, d: (p.x - q.x) ** 2 + (p.y - q.y) ** 2 + (p.z - q.z) ** 2 }))
       .filter((e) => e.j !== i)
       .sort((a, b) => a.d - b.d)
-      .slice(0, EDGE_NEIGHBORS);
+      .slice(0, k);
     nearest.forEach(({ j }) => {
       const key = i < j ? `${i}-${j}` : `${j}-${i}`;
       if (!pairs.has(key)) {
@@ -66,21 +107,46 @@ function buildEdges(vertices: Point3[]): [number, number][] {
   return edges;
 }
 
-function pointsAlongEdges(vertices: Point3[], edges: [number, number][]): Point3[] {
+interface Shape {
+  vertices: Point3[];
+  edges: [number, number][];
+}
+
+function makeShape(vertices: Point3[], k: number): Shape {
+  return { vertices, edges: nearestEdges(vertices, k) };
+}
+
+function buildShapes(): Shape[] {
+  return [
+    makeShape(tetrahedronVertices(), 3),
+    makeShape(cubeVertices(), 3),
+    makeShape(octahedronVertices(), 4),
+    makeShape(icosahedronVertices(), 5),
+    makeShape(dodecahedronVertices(), 3),
+  ];
+}
+
+function generateShapePoints(shape: Shape, targetCount: number): Point3[] {
   const points: Point3[] = [];
-  edges.forEach(([a, b]) => {
-    const va = vertices[a];
-    const vb = vertices[b];
-    for (let i = 0; i < POINTS_PER_EDGE; i++) {
-      const t = i / (POINTS_PER_EDGE - 1);
-      points.push({
-        x: va.x + (vb.x - va.x) * t,
-        y: va.y + (vb.y - va.y) * t,
-        z: va.z + (vb.z - va.z) * t,
-      });
+  const perEdge = Math.max(4, Math.round(targetCount / shape.edges.length));
+  shape.edges.forEach(([a, b]) => {
+    const va = shape.vertices[a];
+    const vb = shape.vertices[b];
+    for (let i = 0; i < perEdge; i++) {
+      const t = i / (perEdge - 1);
+      points.push({ x: va.x + (vb.x - va.x) * t, y: va.y + (vb.y - va.y) * t, z: va.z + (vb.z - va.z) * t });
     }
   });
-  return points;
+  let i = 0;
+  while (points.length < targetCount) {
+    const [a, b] = shape.edges[i % shape.edges.length];
+    const va = shape.vertices[a];
+    const vb = shape.vertices[b];
+    const t = Math.random();
+    points.push({ x: va.x + (vb.x - va.x) * t, y: va.y + (vb.y - va.y) * t, z: va.z + (vb.z - va.z) * t });
+    i++;
+  }
+  return points.slice(0, targetCount);
 }
 
 function rotateY(p: Point3, angle: number): Point3 {
@@ -104,9 +170,8 @@ export default function MoleculeShape() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const vertices = icosahedronVertices();
-    const edges = buildEdges(vertices);
-    const basePoints = pointsAlongEdges(vertices, edges);
+    const shapes = buildShapes();
+    const shapePointSets = shapes.map((s) => generateShapePoints(s, TARGET_POINTS));
 
     let width = 0;
     let height = 0;
@@ -126,7 +191,7 @@ export default function MoleculeShape() {
     resize();
     window.addEventListener('resize', resize);
 
-    const nodes: Node[] = basePoints.map((p) => ({
+    const nodes: Node[] = shapePointSets[0].map((p) => ({
       x: p.x * radius,
       y: p.y * radius,
       z: p.z * radius,
@@ -144,18 +209,22 @@ export default function MoleculeShape() {
     let scattered = false;
     let scatterTimer: ReturnType<typeof setTimeout> | null = null;
     let currentSectionId = '';
+    let currentShapeIndex = 0;
 
-    function scatterAndReassemble(index: number) {
-      sectionAngleY = index * 0.62;
-      sectionAngleX = Math.sin(index * 1.3) * 0.35;
+    function scatterAndReassemble(sectionIndex: number) {
+      currentShapeIndex = sectionIndex % shapePointSets.length;
+      const nextShape = shapePointSets[currentShapeIndex];
+      sectionAngleY = sectionIndex * 0.62;
+      sectionAngleX = Math.sin(sectionIndex * 1.3) * 0.35;
       scattered = true;
-      nodes.forEach((n) => {
+      nodes.forEach((n, i) => {
         const dir = Math.sqrt(n.base.x ** 2 + n.base.y ** 2 + n.base.z ** 2) || 1;
         const spread = radius * (2.2 + Math.random() * 1.8);
         const jitter = () => (Math.random() - 0.5) * radius * 1.1;
         n.tx = (n.base.x / dir) * spread + jitter();
         n.ty = (n.base.y / dir) * spread + jitter();
         n.tz = (n.base.z / dir) * spread + jitter();
+        n.base = nextShape[i];
       });
       if (scatterTimer) clearTimeout(scatterTimer);
       scatterTimer = setTimeout(() => {
