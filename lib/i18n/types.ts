@@ -16,6 +16,7 @@ export interface Dictionary {
   hero: {
     tag: string;
     sub: string;
+    meta: string;
   };
   about: {
     eyebrow: string;

@@ -10,7 +10,8 @@ export const vn: Dictionary = {
   },
   hero: {
     tag: 'KINH DOANH THẾ HỆ MỚI',
-    sub: 'Mở rộng tiềm năng thông qua công nghệ và mạng lưới toàn cầu.\nCông ty Self Leverage',
+    sub: 'Mở rộng tiềm năng thông qua\ncông nghệ và mạng lưới toàn cầu.',
+    meta: 'SYSTEM — SUBSIDY — POWER — SALES　/　OSAKA · VIETNAM',
   },
   about: {
     eyebrow: '01 — VỀ CHÚNG TÔI',

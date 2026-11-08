@@ -10,10 +10,12 @@ export default function Header() {
   const { dict, label, cycleLang } = useLang();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [onLight, setOnLight] = useState(true);
   const { scrollY } = useScroll();
   const lastY = useRef(0);
 
   useMotionValueEvent(scrollY, 'change', (latest) => {
+    setOnLight(latest < window.innerHeight - 80);
     if (latest < 50) {
       setScrolled(false);
     } else if (latest > lastY.current) {
@@ -32,7 +34,7 @@ export default function Header() {
 
   return (
     <>
-      <header id="navbar" className={`fixed top-0 left-0 w-full z-50 px-6 py-5 ${scrolled ? 'scrolled' : ''}`}>
+      <header id="navbar" className={`fixed top-0 left-0 w-full z-50 px-6 py-5 ${scrolled ? 'scrolled' : ''} ${onLight && !menuOpen ? 'on-light' : ''}`}>
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <a href="#hero" className="flex items-center gap-3 group relative z-50">
             <Image
@@ -43,7 +45,7 @@ export default function Header() {
               className="rounded-full object-contain mix-blend-screen group-hover:scale-110 transition-transform duration-300"
               priority
             />
-            <span className="font-tech text-sm tracking-[.18em] uppercase text-white font-bold">Self Leverage</span>
+            <span className="nav-brand font-tech text-sm tracking-[.18em] uppercase text-white font-bold">Self Leverage</span>
           </a>
 
           <div className="flex items-center gap-6">

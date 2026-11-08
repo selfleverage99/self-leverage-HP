@@ -10,7 +10,8 @@ export const en: Dictionary = {
   },
   hero: {
     tag: 'NEXT GENERATION BUSINESS',
-    sub: 'Maximizing potential through technology and global networks.\nSelf Leverage Co., Ltd.',
+    sub: 'Maximizing potential through\ntechnology and global networks.',
+    meta: 'SYSTEM — SUBSIDY — POWER — SALES　/　OSAKA · VIETNAM',
   },
   about: {
     eyebrow: '01 — WHO WE ARE',

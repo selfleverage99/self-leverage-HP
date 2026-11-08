@@ -10,7 +10,8 @@ export const ja: Dictionary = {
   },
   hero: {
     tag: 'NEXT GENERATION BUSINESS',
-    sub: 'テクノロジーとグローバルネットワークで可能性をフル拡大。\n株式会社セルレバ',
+    sub: 'テクノロジーとグローバルネットワークで、\n可能性をフル拡大する。',
+    meta: 'SYSTEM — SUBSIDY — POWER — SALES　/　OSAKA · VIETNAM',
   },
   about: {
     eyebrow: '01 — WHO WE ARE',
