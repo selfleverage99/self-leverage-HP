@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import { useLang } from '@/lib/i18n/LanguageContext';
+import HeroSphere from './HeroSphere';
 
 const LABELS = [
   'System', 'AI', 'Subsidy', 'Power', 'Sales', 'Global', 'Japan', 'Vietnam', 'Data', 'Cloud',
@@ -119,6 +120,8 @@ export default function Hero() {
           <path key={i} d={d} />
         ))}
       </svg>
+
+      <HeroSphere />
 
       <div className="hero-chips" aria-hidden="true">
         {CHIPS.map((c) => (
